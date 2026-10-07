@@ -49,6 +49,21 @@ local function isAuthorized(src)
     return false
 end
 
+local function openMenuForPlayer(src)
+    if not src or src <= 0 then
+        return false
+    end
+
+    local payload = {
+        dashboard = CCTV.Cameras and CCTV.Cameras.GetDashboardData() or {},
+        cameras = CCTV.Cameras and CCTV.Cameras.GetAll() or {},
+        evidence = CCTV.Evidence and CCTV.Evidence.GetAll() or {}
+    }
+
+    TriggerClientEvent('cctv:client:openMenu', src, payload)
+    return true
+end
+
 AddEventHandler('onResourceStart', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
@@ -57,8 +72,61 @@ AddEventHandler('onResourceStart', function(resourceName)
     debugLog('Resource gestartet')
     if MySQL then
         CCTV.Cameras.Load()
+        if CCTV.Terminals and CCTV.Terminals.Load then
+            CCTV.Terminals.Load()
+        end
     else
         print('[CCTV] MySQL resource not ready yet. Please ensure oxmysql is started.')
+    end
+end)
+
+RegisterNetEvent('cctv:server:requestOpenMenu', function()
+    local src = source
+
+    if Config and Config.Debug then
+        print(('[CCTV] /bgcctv wurde ausgeführt'))
+        print(('[CCTV] Spieler: %s'):format(GetPlayerName(src)))
+        if ESX and ESX.GetPlayerFromId then
+            local xPlayer = ESX.GetPlayerFromId(src)
+            if xPlayer and xPlayer.job then
+                print(('[CCTV] Job: %s'):format(tostring(xPlayer.job.name)))
+                print(('[CCTV] Grade: %s'):format(tostring(xPlayer.job.grade)))
+            end
+        end
+    end
+
+    if not isAuthorized(src) then
+        TriggerClientEvent('chat:addMessage', src, {
+            args = {'^1CCTV', 'Du hast keinen Zugriff auf das CCTV-System.'}
+        })
+        TriggerClientEvent('cctv:client:closeMenu', src)
+        if Config and Config.Debug then
+            print(('[CCTV ERROR] Keine Berechtigung für %s'):format(GetPlayerName(src)))
+        end
+        return
+    end
+
+    if Config and Config.Debug then
+        print(('[CCTV] Permission: TRUE'))
+        print(('[CCTV] Sende Open Event'))
+    end
+
+    local opened = openMenuForPlayer(src)
+    if opened then
+        if CCTV.Terminals and CCTV.Terminals.SendToClient then
+            CCTV.Terminals.SendToClient(src)
+        end
+        if Config and Config.Debug then
+            print(('[CCTV] NUI Open Message gesendet'))
+        end
+        return
+    end
+
+    TriggerClientEvent('chat:addMessage', src, {
+        args = {'^1CCTV', 'CCTV-System konnte nicht geöffnet werden.'}
+    })
+    if Config and Config.Debug then
+        print('[CCTV ERROR] NUI Open konnte nicht verarbeitet werden')
     end
 end)
 
@@ -192,12 +260,18 @@ RegisterCommand('bgcctv', function(source)
             args = {'^1CCTV', 'Du hast keinen Zugriff auf das CCTV-System.'}
         })
         TriggerClientEvent('cctv:client:closeMenu', source)
-        debugLog(('No permission for /bgcctv by %s'):format(GetPlayerName(source)))
+        if Config and Config.Debug then
+            print(('[CCTV ERROR] Keine Berechtigung für /bgcctv: %s'):format(GetPlayerName(source)))
+        end
         return
     end
 
-    debugLog(('Permission confirmed for %s'):format(GetPlayerName(source)))
-    sendMenuPayload(source)
+    if Config and Config.Debug then
+        print(('[CCTV] /bgcctv wurde ausgeführt'))
+        print(('[CCTV] Spieler: %s'):format(GetPlayerName(source)))
+    end
+
+    TriggerClientEvent('cctv:server:requestOpenMenu', source)
 end, false)
 
 RegisterCommand('cctvadmin', function(source)
@@ -209,6 +283,92 @@ RegisterCommand('cctvadmin', function(source)
     end
 
     sendMenuPayload(source)
+end, false)
+
+RegisterCommand('bgcctvadmin', function(source)
+    if not CCTV.Permissions.hasAdminAccess(source) then
+        TriggerClientEvent('chat:addMessage', source, {
+            args = {'^1CCTV', 'Admin access required.'}
+        })
+        return
+    end
+
+    TriggerClientEvent('cctv:server:requestOpenMenu', source)
+end, false)
+
+RegisterCommand('bgcctvterminal', function(source)
+    if not CCTV.Permissions.hasAdminAccess(source) then
+        TriggerClientEvent('chat:addMessage', source, {
+            args = {'^1CCTV', 'Admin access required.'}
+        })
+        return
+    end
+
+    local ped = GetPlayerPed(source)
+    local coords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    local success, message = CCTV.Terminals.Create({
+        name = ('Terminal #%d'):format((#(CCTV.Terminals.GetAll()) + 1)),
+        type = 'police',
+        x = coords.x,
+        y = coords.y,
+        z = coords.z,
+        heading = heading,
+        job = 'police',
+        created_by = GetPlayerName(source),
+    }, GetPlayerName(source))
+
+    TriggerClientEvent('chat:addMessage', source, {
+        args = {'^3CCTV', success and message or 'Terminal konnte nicht erstellt werden.'}
+    })
+end, false)
+
+RegisterCommand('bgcctvterminals', function(source)
+    if not CCTV.Permissions.hasAdminAccess(source) then
+        return
+    end
+
+    local terminals = CCTV.Terminals.GetAll()
+    TriggerClientEvent('chat:addMessage', source, {
+        args = {'^3CCTV', ('Vorhandene Terminals: %d'):format(#terminals)}
+    })
+    for _, terminal in ipairs(terminals) do
+        TriggerClientEvent('chat:addMessage', source, {
+            args = {'^3CCTV', ('#%d %s | %s | %s'):format(terminal.id, terminal.name, terminal.type, terminal.job)}
+        })
+    end
+end, false)
+
+RegisterCommand('bgcctvterminaldelete', function(source, args)
+    if not CCTV.Permissions.hasAdminAccess(source) then
+        return
+    end
+
+    local id = tonumber(args[1])
+    if not id then
+        TriggerClientEvent('chat:addMessage', source, {
+            args = {'^1CCTV', 'Usage: /bgcctvterminaldelete [id]'}
+        })
+        return
+    end
+
+    local success, message = CCTV.Terminals.Delete(id)
+    TriggerClientEvent('chat:addMessage', source, {
+        args = {'^3CCTV', success and message or 'Terminal konnte nicht gelöscht werden.'}
+    })
+end, false)
+
+RegisterCommand('bgcctvdebug', function(source)
+    if not CCTV.Permissions.hasAdminAccess(source) then
+        return
+    end
+
+    if Config and Config.Debug then
+        print('[CCTV] Debug aktiviert')
+    end
+    TriggerClientEvent('chat:addMessage', source, {
+        args = {'^3CCTV', 'Debug-Modus aktiviert.'}
+    })
 end, false)
 
 RegisterCommand('cctvdelete', function(source, args)

@@ -40,10 +40,8 @@ function Permissions.hasAdminAccess(src)
 
     local playerGroup = getPlayerGroup(src)
     if playerGroup then
-        for _, adminGroup in ipairs(Config.AdminGroups or {}) do
-            if playerGroup == adminGroup then
-                return true
-            end
+        if Config.AdminGroups and Config.AdminGroups[playerGroup] then
+            return true
         end
     end
 
@@ -51,9 +49,11 @@ function Permissions.hasAdminAccess(src)
         return true
     end
 
-    for _, adminGroup in ipairs(Config.AdminGroups or {}) do
-        if IsPlayerAceAllowed(src, ('group.%s'):format(adminGroup)) then
-            return true
+    if Config.AdminGroups then
+        for adminGroup, enabled in pairs(Config.AdminGroups) do
+            if enabled and IsPlayerAceAllowed(src, ('group.%s'):format(adminGroup)) then
+                return true
+            end
         end
     end
 

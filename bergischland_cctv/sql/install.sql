@@ -56,5 +56,20 @@ CREATE TABLE IF NOT EXISTS `camera_access` (
         FOREIGN KEY (`camera_id`) REFERENCES `cameras` (`id`) ON DELETE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `cctv_terminals` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(120) NOT NULL,
+    `type` VARCHAR(50) NOT NULL DEFAULT 'police',
+    `x` FLOAT NOT NULL,
+    `y` FLOAT NOT NULL,
+    `z` FLOAT NOT NULL,
+    `heading` FLOAT NOT NULL DEFAULT 0,
+    `job` VARCHAR(50) NOT NULL DEFAULT 'police',
+    `created_by` VARCHAR(255) NOT NULL DEFAULT 'system',
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE INDEX IF NOT EXISTS `idx_cameras_status` ON `cameras` (`status`);
 CREATE INDEX IF NOT EXISTS `idx_cameras_type` ON `cameras` (`type`);
+CREATE INDEX IF NOT EXISTS `idx_cctv_terminals_job` ON `cctv_terminals` (`job`);

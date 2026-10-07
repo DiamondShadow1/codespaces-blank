@@ -4,8 +4,8 @@ Config.Framework = 'esx'
 Config.ResourceName = 'bergischland_cctv'
 
 Config.AdminGroups = {
-    'admin',
-    'superadmin'
+    admin = true,
+    superadmin = true,
 }
 
 Config.PoliceJobs = {

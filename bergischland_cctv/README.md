@@ -42,8 +42,9 @@ Ein vollständiges, modular aufgebautes CCTV-/Überwachungskamera-System für Fi
 
 Die wichtigsten Einstellungen liegen in `config.lua`.
 
-- `Config.AdminGroups` – Admin-Gruppen für `/cctvadmin`
+- `Config.AdminGroups` – Admin-Gruppen für `/bgcctvadmin`
 - `Config.PoliceJobs` – Polizeijobs und Mindestgrade
+- `Config.AdminGroups` nutzt die Form `{ admin = true, superadmin = true }`
 - `Config.JobAccess` – Standard-Zugriff pro Job
 - `Config.DefaultRecordingMinutes` – Standard-Aufnahmezeit
 - `Config.MaxCameraDistance` – maximale Distanz zu einer Kamera
@@ -52,11 +53,14 @@ Die wichtigsten Einstellungen liegen in `config.lua`.
 
 ## 4. Commands
 
-- `/cctv` – CCTV-Menü öffnen
-- `/cctvadmin` – Admin-Menü öffnen
-- `/cctvcreate` – Admin-Shortcut zum Erstellen einer Kamera
-- `/cctvdelete [id]` – Kamera löschen
-- `/cctvdebug` – Admin-Debug-Ausgabe
+- `/bgcctv` – CCTV-Menü öffnen
+- `/bgcctvadmin` – Admin-Menü öffnen
+- `/bgcctvcreate` – Admin-Shortcut zum Erstellen einer Kamera
+- `/bgcctvdelete [id]` – Kamera löschen
+- `/bgcctvterminal` – CCTV-Terminal platzieren
+- `/bgcctvterminals` – Vorhandene Terminals anzeigen
+- `/bgcctvterminaldelete [id]` – Terminal löschen
+- `/bgcctvdebug` – Admin-Debug-Ausgabe
 
 Alle Commands werden serverseitig validiert.
 
