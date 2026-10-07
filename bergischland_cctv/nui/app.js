@@ -7,8 +7,9 @@ const appState = {
     section: 'dashboard'
 };
 
+const resourceName = window.GetParentResourceName ? window.GetParentResourceName() : 'bergischland_cctv';
+
 function postNui(action, data = {}) {
-    const resourceName = window.GetParentResourceName ? window.GetParentResourceName() : 'bergischland_cctv';
     fetch(`https://${resourceName}/${action}`, {
         method: 'POST',
         headers: {
@@ -16,6 +17,28 @@ function postNui(action, data = {}) {
         },
         body: JSON.stringify(data)
     }).catch(() => {});
+}
+
+function hideApp() {
+    const app = document.getElementById('cctv-app');
+    if (app) app.classList.add('hidden');
+    app.style.display = 'none';
+
+    const cameraView = document.getElementById('cameraView');
+    if (cameraView) cameraView.classList.add('hidden');
+}
+
+function showApp() {
+    const app = document.getElementById('cctv-app');
+    if (app) {
+        app.classList.remove('hidden');
+        app.style.display = 'flex';
+    }
+}
+
+function closeNui() {
+    postNui('close', {});
+    hideApp();
 }
 
 function renderDashboard() {
@@ -30,7 +53,7 @@ function renderDashboard() {
 function getFilteredCameras() {
     const query = appState.search.trim().toLowerCase();
     return appState.cameras.filter((camera) => {
-        const matchesSearch = !query || camera.name.toLowerCase().includes(query) || String(camera.id).includes(query);
+        const matchesSearch = !query || (camera.name || '').toLowerCase().includes(query) || String(camera.id).includes(query);
         const matchesFilter = appState.filter === 'all' ||
             (appState.filter === 'police' && camera.type === 'police') ||
             (appState.filter === 'business' && camera.type === 'business') ||
@@ -124,17 +147,23 @@ window.addEventListener('message', (event) => {
     if (!data) return;
 
     if (data.action === 'open') {
-        document.getElementById('cctv-app').classList.remove('hidden');
+        showApp();
         return;
     }
 
     if (data.action === 'close') {
-        document.getElementById('cctv-app').classList.add('hidden');
+        hideApp();
         return;
     }
 
     if (data.action === 'setData') {
         updateFromPayload(data.payload || {});
+    }
+});
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeNui();
     }
 });
 
@@ -156,11 +185,11 @@ document.getElementById('cameraSearch').addEventListener('input', (event) => {
 });
 
 document.getElementById('closeNuiBtn').addEventListener('click', () => {
-    postNui('cctv:nui:close', {});
+    closeNui();
 });
 
 document.getElementById('createCameraBtn').addEventListener('click', () => {
-    postNui('cctv:nui:createCamera', {
+    postNui('createCamera', {
         name: 'Neue Kamera',
         type: 'public',
         range: 35,
@@ -181,7 +210,7 @@ document.getElementById('cameraList').addEventListener('click', (event) => {
     const action = actionElement.dataset.cameraAction;
 
     if (action === 'open') {
-        postNui('cctv:nui:openCamera', { cameraId });
+        postNui('selectCamera', { cameraId });
     }
 
     if (action === 'details') {
@@ -195,23 +224,24 @@ document.getElementById('cameraList').addEventListener('click', (event) => {
 
 document.getElementById('exitCameraBtn').addEventListener('click', () => {
     document.getElementById('cameraView').classList.add('hidden');
-    postNui('cctv:nui:close', {});
+    closeNui();
 });
 
 document.getElementById('nextCameraBtn').addEventListener('click', () => {
     const current = appState.cameras[0];
     if (current) {
-        postNui('cctv:nui:openCamera', { cameraId: current.id });
+        postNui('selectCamera', { cameraId: current.id });
     }
 });
 
 document.getElementById('prevCameraBtn').addEventListener('click', () => {
     const current = appState.cameras[0];
     if (current) {
-        postNui('cctv:nui:openCamera', { cameraId: current.id });
+        postNui('selectCamera', { cameraId: current.id });
     }
 });
 
+hideApp();
 setSection('dashboard');
 renderDashboard();
 renderCameraList();

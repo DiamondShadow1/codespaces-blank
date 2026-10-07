@@ -1,10 +1,16 @@
 CCTV = CCTV or {}
 CCTV.Server = CCTV.Server or {}
 
+local function debugLog(message)
+    if Config and Config.Debug then
+        print(('[CCTV] %s'):format(message))
+    end
+end
+
 local function logAction(category, message)
     print(('[CCTV][%s] %s'):format(category, message))
 
-    if Config.EnableDiscordLogs and Config.DiscordWebhook and Config.DiscordWebhook ~= '' then
+    if Config and Config.EnableDiscordLogs and Config.DiscordWebhook and Config.DiscordWebhook ~= '' then
         PerformHttpRequest(Config.DiscordWebhook, function(err, text, headers) end, 'POST', json.encode({
             username = 'CCTV Logs',
             content = ('[%s] %s'):format(category, message)
@@ -31,11 +37,24 @@ local function buildSystemPayload(src)
     }
 end
 
+local function isAuthorized(src)
+    if not src or src <= 0 then
+        return false
+    end
+
+    if CCTV.Permissions and (CCTV.Permissions.hasPoliceAccess(src) or CCTV.Permissions.hasAdminAccess(src)) then
+        return true
+    end
+
+    return false
+end
+
 AddEventHandler('onResourceStart', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
     end
 
+    debugLog('Resource gestartet')
     if MySQL then
         CCTV.Cameras.Load()
     else
@@ -45,7 +64,7 @@ end)
 
 RegisterNetEvent('cctv:server:requestData', function()
     local src = source
-    if not CCTV.Permissions.canViewCameras(src) then
+    if not isAuthorized(src) then
         return
     end
 
@@ -54,7 +73,7 @@ end)
 
 RegisterNetEvent('cctv:server:openCamera', function(cameraId)
     local src = source
-    if not CCTV.Permissions.canViewCameras(src) then
+    if not isAuthorized(src) then
         return
     end
 
@@ -125,7 +144,7 @@ end)
 
 RegisterNetEvent('cctv:server:saveEvidence', function(payload)
     local src = source
-    if not CCTV.Permissions.hasPoliceAccess(src) and not CCTV.Permissions.hasAdminAccess(src) then
+    if not isAuthorized(src) then
         return
     end
 
@@ -163,14 +182,21 @@ RegisterNetEvent('cctv:server:markDamaged', function(cameraId)
     TriggerClientEvent('cctv:client:receiveData', src, { type = 'damage', success = true, camera = cameraId })
 end)
 
-RegisterCommand('cctv', function(source)
-    if not CCTV.Permissions.canViewCameras(source) then
-        TriggerClientEvent('chat:addMessage', source, {
-            args = {'^1CCTV', 'You do not have permission to access the CCTV system.'}
-        })
+RegisterCommand('bgcctv', function(source)
+    if not source or source <= 0 then
         return
     end
 
+    if not isAuthorized(source) then
+        TriggerClientEvent('chat:addMessage', source, {
+            args = {'^1CCTV', 'Du hast keinen Zugriff auf das CCTV-System.'}
+        })
+        TriggerClientEvent('cctv:client:closeMenu', source)
+        debugLog(('No permission for /bgcctv by %s'):format(GetPlayerName(source)))
+        return
+    end
+
+    debugLog(('Permission confirmed for %s'):format(GetPlayerName(source)))
     sendMenuPayload(source)
 end, false)
 
@@ -183,19 +209,6 @@ RegisterCommand('cctvadmin', function(source)
     end
 
     sendMenuPayload(source)
-end, false)
-
-RegisterCommand('cctvcreate', function(source)
-    if not CCTV.Permissions.canManageCameras(source) then
-        return
-    end
-
-    TriggerClientEvent('cctv:client:openMenu', source, {
-        dashboard = CCTV.Cameras and CCTV.Cameras.GetDashboardData() or {},
-        cameras = CCTV.Cameras and CCTV.Cameras.GetAll() or {},
-        evidence = CCTV.Evidence and CCTV.Evidence.GetAll() or {},
-        createMode = true,
-    })
 end, false)
 
 RegisterCommand('cctvdelete', function(source, args)
@@ -220,7 +233,9 @@ RegisterCommand('cctvdebug', function(source)
         return
     end
 
-    print('[CCTV][DEBUG] Total cameras:', #((CCTV.Cameras and CCTV.Cameras.GetAll()) or {}))
+    if Config and Config.Debug then
+        print('[CCTV][DEBUG] Total cameras:', #((CCTV.Cameras and CCTV.Cameras.GetAll()) or {}))
+    end
     TriggerClientEvent('chat:addMessage', source, {
         args = {'^3CCTV', 'Debug output sent to server console.'}
     })

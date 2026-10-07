@@ -6,23 +6,42 @@ CCTVClient.state = CCTVClient.state or {
     cameraHandle = nil,
 }
 
-local function setNuiOpen(open)
-    CCTVClient.state.isOpen = open
-    SetNuiFocus(open, open)
+local function safeNuiClose()
+    SetNuiFocus(false, false)
+    SendNUIMessage({ action = 'close' })
+    CCTVClient.state.isOpen = false
 end
 
-RegisterNetEvent('cctv:client:openMenu', function(data)
-    SendNUIMessage({
-        action = 'setData',
-        payload = data or {}
-    })
+local function safeNuiOpen(data)
+    if data then
+        SendNUIMessage({
+            action = 'setData',
+            payload = data
+        })
+    end
+
     SendNUIMessage({ action = 'open' })
-    setNuiOpen(true)
+    SetNuiFocus(true, true)
+    CCTVClient.state.isOpen = true
+end
+
+AddEventHandler('onResourceStart', function(resourceName)
+    if resourceName ~= GetCurrentResourceName() then
+        return
+    end
+
+    safeNuiClose()
+    if Config and Config.Debug then
+        print('[CCTV] Resource gestartet')
+    end
+end)
+
+RegisterNetEvent('cctv:client:openMenu', function(data)
+    safeNuiOpen(data)
 end)
 
 RegisterNetEvent('cctv:client:closeMenu', function()
-    SendNUIMessage({ action = 'close' })
-    setNuiOpen(false)
+    safeNuiClose()
 end)
 
 RegisterNetEvent('cctv:client:receiveData', function(data)
@@ -40,23 +59,12 @@ RegisterNetEvent('cctv:client:openCameraView', function(camera)
     CCTVClient.Camera.Open(camera)
 end)
 
-RegisterCommand('cctv', function()
-    TriggerServerEvent('cctv:server:requestData')
-end, false)
-
-RegisterCommand('cctvadmin', function()
-    TriggerServerEvent('cctv:server:requestData')
-end, false)
-
-RegisterCommand('cctvdebug', function()
-    TriggerServerEvent('cctv:server:requestData')
-end, false)
-
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then
         return
     end
 
+    SetNuiFocus(false, false)
     if CCTVClient.state.cameraViewActive and CCTVClient.state.cameraHandle then
         RenderScriptCams(false, false, 0, true, false)
         DestroyCam(CCTVClient.state.cameraHandle, false)
