@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bergischland_cctv</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="cctv-app" class="app hidden">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-mark">C</span>
+                <div>
+                    <h1>BERGISCHLAND</h1>
+                    <small>CCTV</small>
+                </div>
+            </div>
+
+            <nav class="nav">
+                <button class="nav-item active" data-section="dashboard">Dashboard</button>
+                <button class="nav-item" data-section="cameras">Kameras</button>
+                <button class="nav-item" data-section="recordings">Aufnahmen</button>
+                <button class="nav-item" data-section="evidence">Beweismittel</button>
+                <button class="nav-item" data-section="admin">Admin</button>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header class="topbar">
+                <div class="search-wrap">
+                    <input id="cameraSearch" type="text" placeholder="Kamera suchen...">
+                </div>
+                <div class="actions">
+                    <button id="createCameraBtn" class="primary">+ Kamera erstellen</button>
+                    <button id="closeNuiBtn" class="secondary">Schließen</button>
+                </div>
+            </header>
+
+            <section class="dashboard section active" data-section-view="dashboard">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <label>Gesamt</label>
+                        <strong id="statTotal">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <label>Online</label>
+                        <strong id="statOnline">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <label>Offline</label>
+                        <strong id="statOffline">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <label>Beschädigt</label>
+                        <strong id="statDamaged">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <label>Aufnahmen</label>
+                        <strong id="statRecordings">0</strong>
+                    </div>
+                    <div class="stat-card">
+                        <label>Beweismittel</label>
+                        <strong id="statEvidence">0</strong>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section" data-section-view="cameras">
+                <div class="toolbar">
+                    <div class="filters">
+                        <button class="filter active" data-filter="all">Alle</button>
+                        <button class="filter" data-filter="ONLINE">Online</button>
+                        <button class="filter" data-filter="OFFLINE">Offline</button>
+                        <button class="filter" data-filter="DAMAGED">Beschädigt</button>
+                        <button class="filter" data-filter="police">Polizei</button>
+                        <button class="filter" data-filter="business">Geschäft</button>
+                        <button class="filter" data-filter="public">Öffentlich</button>
+                    </div>
+                </div>
+                <div id="cameraList" class="camera-list"></div>
+            </section>
+
+            <section class="section" data-section-view="recordings">
+                <div class="empty-card">
+                    <h3>Aufnahmen</h3>
+                    <p>Replay- und Sicherheitsaufzeichnungen werden hier angezeigt.</p>
+                </div>
+            </section>
+
+            <section class="section" data-section-view="evidence">
+                <div id="evidenceList" class="evidence-list"></div>
+            </section>
+
+            <section class="section" data-section-view="admin">
+                <div class="admin-panel">
+                    <h3>Admin-System</h3>
+                    <div class="admin-grid">
+                        <div class="admin-card">
+                            <span>Standard-Aufnahmezeit</span>
+                            <strong>30 Minuten</strong>
+                        </div>
+                        <div class="admin-card">
+                            <span>Maximale Kameras</span>
+                            <strong>250</strong>
+                        </div>
+                        <div class="admin-card">
+                            <span>Standard-Sichtweite</span>
+                            <strong>35m</strong>
+                        </div>
+                        <div class="admin-card">
+                            <span>Debug</span>
+                            <strong>Aus</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="cameraView" class="camera-view hidden">
+        <div class="camera-overlay"></div>
+        <div class="camera-panel">
+            <div class="camera-header">
+                <span id="cameraTitle">Kamera #000</span>
+                <button id="exitCameraBtn">Verlassen</button>
+            </div>
+            <div class="camera-display">
+                <div class="camera-status-badge">LIVE</div>
+                <div class="camera-overlay-text">Datum / Uhrzeit</div>
+            </div>
+            <div class="camera-controls">
+                <button id="prevCameraBtn">Vorherige</button>
+                <button id="nextCameraBtn">Nächste</button>
+                <button id="zoomBtn">Zoom</button>
+                <button id="nightModeBtn">Nachtmodus</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
